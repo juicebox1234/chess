@@ -1,5 +1,7 @@
 const BOARD_HEIGHT = 8;
 const BOARD_WIDTH = 8;
+const TILE_WIDTH = 32;
+const TILE_HEIGHT = 32
 const PIECE_COUNT = 13;
 
 //ids for each peice 
@@ -93,6 +95,9 @@ async function readJson(name) {
 }
 
 function drawBoard() {
+	//const element = document.querySelector('#canvas');
+
+	//console.log(absoluteX + " " + absoluteY);
 	let canvas = document.createElement("canvas");
 	canvas.width = 256;
 	canvas.height = 256;
@@ -137,9 +142,17 @@ async function initBoard() {
 	return board
 }
 
+//helper
+//pass a PointerDownEvent
+function getCoordsInsideTarget(e) {
+	//e.pageX + 
+}
+
 async function initState() {
 
 	let state = {
+		selectedPiece: {x:0, y:0},
+		selecting: false,
 		board: await initBoard(),
 		boardImage: drawBoard(),
 		canvas: document.getElementById('canvas'),
@@ -147,13 +160,75 @@ async function initState() {
 		num: 117,
 	};
 
-	state.canvas.width = 256;
-	state.canvas.height = 256;
+	state.canvas.width = TILE_WIDTH * BOARD_WIDTH;
+	state.canvas.height = TILE_HEIGHT * BOARD_HEIGHT;
 
 	//state.element = document.getElementById('piece');
 
+	document.addEventListener('pointerdown', (e) => {
+		//console.log(e);
+		const rect = getPageRect(state.canvas);
+		
+		//calculate 
+		let tileX = Math.trunc((e.pageX - rect.left) / (rect.width / BOARD_WIDTH));
+		let tileY = Math.trunc((e.pageY - rect.top) / (rect.height / BOARD_HEIGHT));
+
+
+		//console.log(tileX+ " " +  tileY  + "  :" + state.canvas.style.height);
+
+		//bounds checking
+		if(tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT) {
+			console.log("aaaj");
+			state.selecting = false;
+			start(state);
+			return;
+		}
+
+		if(state.selecting === false && state.board[tileY][tileX] == PIECE.EMPTY) {
+			start(state);
+			return;
+		}
+
+		if(state.selecting === true && tileY == state.selectedPiece.y  && tileX == state.selectedPiece.x) {
+			state.selecting = false;
+			start(state);
+			return;
+		}
+
+		if(state.selecting === true) {
+			state.board[tileY][tileX] = state.board[state.selectedPiece.y][state.selectedPiece.x];
+			state.board[state.selectedPiece.y][state.selectedPiece.x] = PIECE.EMPTY;
+			state.selecting = false;
+			start(state);
+		}
+		else if (!(tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT)) {
+			state.selectedPiece = {
+				x: tileX,
+				y: tileY,
+			};
+
+			state.selecting = true;
+			start(state);
+		} 
+
+	});
+
+	
 
 	return state;
+}
+
+//AI
+//does getClientRect() but reletive to the top left corner of the page 
+function getPageRect(el) {
+  const r = el.getBoundingClientRect();
+
+  return {
+    left: r.left + scrollX,
+    top: r.top + scrollY,
+    width: r.width,
+    height: r.height
+  };
 }
 
 function start(state) {
@@ -164,9 +239,10 @@ function start(state) {
 		update(state);
 		render(state);
 		
-		requestAnimationFrame(loop);
+		//requestAnimationFrame(loop);
 	}
-	requestAnimationFrame(loop);
+	loop();
+	//requestAnimationFrame(loop);
 }
 
 function update(state) {
@@ -177,26 +253,22 @@ function render(state) {
 
 	for(let y = 0; y < BOARD_HEIGHT; y++) {
 		for(let x = 0; x < BOARD_WIDTH; x++) {
-			//fill checkerboard pattern
-			//if((x % 2 == 0) == (y % 2 == 0))
-				//state.renderer.fillStyle = "rgb(179, 94, 9)";
-				//state.renderer.fillStyle = "#e87f23"
-			//else
-				//state.renderer.fillStyle = "#703602";
-
-			//console.log((y * BOARD_HEIGHT + x));
-			//state.renderer.fillRect(x*32, y*32, 32, 32);
-			//console.log(state.board.length + " " + state.board[0].length);
-
-			//if(PIECES_DATA[state.board[y][x]].has_image)
 			if(state.board[y][x] !== PIECE.EMPTY)
  				state.renderer.drawImage(PIECES[state.board[y][x]].image, x*32, y*32);
-
-			//state.renderer.drawImage(PIECES[0].image, x*32, y*32);
-
-			//console.log(PIECES[0].image);
-			//abort();
 		}
+	}
+		state.renderer.fillStyle = "#34ebe5"
+		//renderer.fillRect(0,0,50,50);
+
+	if(state.selecting) {
+
+		let x = state.selectedPiece.x;
+		let y = state.selectedPiece.y;
+		
+		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, 2, TILE_HEIGHT);
+		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, 2);
+		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT + TILE_HEIGHT - 2, TILE_WIDTH, 2);
+		state.renderer.fillRect(x * TILE_WIDTH + TILE_WIDTH - 2, y * TILE_HEIGHT, 2, TILE_HEIGHT);
 	}
 }
 
