@@ -24,19 +24,19 @@ const PIECE = Object.freeze ({
 
 //peice data
 const PIECES_DATA = Object.freeze ([
-	{image: "./assets/textures/pawn.png", has_image: true},
-	{image: "./assets/textures/rook.png", has_image: true},
-	{image: "./assets/textures/knight.png", has_image: true},
-	{image: "./assets/textures/bishop.png", has_image: true},
-	{image: "./assets/textures/queen.png", has_image: true},
-	{image: "./assets/textures/king.png", has_image: true},
-	{has_image: false},
-	{image: "./assets/textures/white_pawn.png", has_image: true},
-	{image: "./assets/textures/white_rook.png", has_image: true},
-	{image: "./assets/textures/white_knight.png", has_image: true},
-	{image: "./assets/textures/white_bishop.png", has_image: true},
-	{image: "./assets/textures/white_queen.png", has_image: true},
-	{image: "./assets/textures/white_king.png", has_image: true},
+	{image: "./assets/textures/pawn.png"},
+	{image: "./assets/textures/rook.png"},
+	{image: "./assets/textures/knight.png"},
+	{image: "./assets/textures/bishop.png"},
+	{image: "./assets/textures/queen.png"},
+	{image: "./assets/textures/king.png"},
+	{},
+	{image: "./assets/textures/white_pawn.png"},
+	{image: "./assets/textures/white_rook.png"},
+	{image: "./assets/textures/white_knight.png"},
+	{image: "./assets/textures/white_bishop.png"},
+	{image: "./assets/textures/white_queen.png"},
+	{image: "./assets/textures/white_king.png"},
 ]);
 
 let PIECES = []
@@ -52,14 +52,14 @@ async function initPieces() {
 	piecePngs.length = PIECE_COUNT;
 	
 	for(let i = 0; i < PIECE_COUNT; i++) {
-		if(PIECES_DATA[i].has_image == true)
+		if(i != PIECE.EMPTY)
 			piecePngs[i] = readImage(PIECES_DATA[i].image) 
 	}
 
 	results = await Promise.all(piecePngs);
 
 	for(let i = 0; i < PIECE_COUNT; i++) {
-		if(PIECES_DATA[i].has_image == true)
+		if(i != PIECE.EMPTY)
 			PIECES[i].image = await piecePngs[i];
 	}
 }
@@ -148,11 +148,19 @@ function getCoordsInsideTarget(e) {
 	//e.pageX + 
 }
 
+const BoardGuiState {
+	IDLE: 0,
+	SELECTED: 1,
+}
+
 async function initState() {
 
 	let state = {
-		selectedPiece: {x:0, y:0},
+		
+		lastTileClicked: {},
+		selectedPiece: {},
 		selecting: false,
+
 		board: await initBoard(),
 		boardImage: drawBoard(),
 		canvas: document.getElementById('canvas'),
@@ -166,10 +174,16 @@ async function initState() {
 	//state.element = document.getElementById('piece');
 
 	document.addEventListener('pointerdown', (e) => {
+		state.lastTileClicked = getTileClicked(state.canvas, e.pageX, e.pageY);
+		
+		start(state)
+	}
+
+	document.addEventListener('pointerdown', (e) => {
 		//console.log(e);
 		const rect = getPageRect(state.canvas);
 		
-		//calculate 
+		//calculate tile clicked
 		let tileX = Math.trunc((e.pageX - rect.left) / (rect.width / BOARD_WIDTH));
 		let tileY = Math.trunc((e.pageY - rect.top) / (rect.height / BOARD_HEIGHT));
 
@@ -177,7 +191,7 @@ async function initState() {
 		//console.log(tileX+ " " +  tileY  + "  :" + state.canvas.style.height);
 
 		//bounds checking
-		if(tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT) {
+		/*if(tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT) {
 			console.log("aaaj");
 			state.selecting = false;
 			start(state);
@@ -209,13 +223,33 @@ async function initState() {
 
 			state.selecting = true;
 			start(state);
-		} 
+		} */
 
 	});
 
 	
 
 	return state;
+}
+
+function getTileClicked(canvas, clickX, clickY) {
+	const rect = getPageRect(canvas);
+	
+	//calculate tile clickeclickX, clickY
+
+	let pos = {}
+
+	pos.x = Math.trunc((clickX - rect.left) / (rect.width / BOARD_WIDTH));
+	pos.y tileY = Math.trunc((clickY - rect.top) / (rect.height / BOARD_HEIGHT));
+
+	//stores weather the user clicked inside the board or outside the board
+	if (tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT) {
+		pos.inBoard = false
+	} else {
+		pos.inBoard = true;
+	}
+
+	return pos;
 }
 
 //AI
@@ -245,7 +279,19 @@ function start(state) {
 	//requestAnimationFrame(loop);
 }
 
+function updateBoard(state) {
+	if(!state.lastTileClicked.inBoard) {
+		state.selecting = false;
+	} 
+	else {
+		
+
+	}
+	
+}
+
 function update(state) {
+	updateBoard(state);
 }
 
 function render(state) {
