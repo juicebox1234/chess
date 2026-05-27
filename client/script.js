@@ -148,7 +148,7 @@ function getCoordsInsideTarget(e) {
 	//e.pageX + 
 }
 
-const BoardGuiState {
+const BoardGuiState  ={
 	IDLE: 0,
 	SELECTED: 1,
 }
@@ -157,8 +157,8 @@ async function initState() {
 
 	let state = {
 		
-		lastTileClicked: {},
-		selectedPiece: {},
+		lastTileClicked: {x: 0, y: 0},
+		selectedTile: {x: 0, y: 0},
 		selecting: false,
 
 		board: await initBoard(),
@@ -176,8 +176,8 @@ async function initState() {
 	document.addEventListener('pointerdown', (e) => {
 		state.lastTileClicked = getTileClicked(state.canvas, e.pageX, e.pageY);
 		
-		start(state)
-	}
+		start(state);
+	});
 
 	document.addEventListener('pointerdown', (e) => {
 		//console.log(e);
@@ -203,20 +203,20 @@ async function initState() {
 			return;
 		}
 
-		if(state.selecting === true && tileY == state.selectedPiece.y  && tileX == state.selectedPiece.x) {
+		if(state.selecting === true && tileY == state.selectedTile.y  && tileX == state.selectedPiece.x) {
 			state.selecting = false;
 			start(state);
 			return;
 		}
 
 		if(state.selecting === true) {
-			state.board[tileY][tileX] = state.board[state.selectedPiece.y][state.selectedPiece.x];
-			state.board[state.selectedPiece.y][state.selectedPiece.x] = PIECE.EMPTY;
+			state.board[tileY][tileX] = state.board[state.selectedTile.y][state.selectedPiece.x];
+			state.board[state.selectedTile.y][state.selectedPiece.x] = PIECE.EMPTY;
 			state.selecting = false;
 			start(state);
 		}
 		else if (!(tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT)) {
-			state.selectedPiece = {
+			state.selectedTile = {
 				x: tileX,
 				y: tileY,
 			};
@@ -239,11 +239,11 @@ function getTileClicked(canvas, clickX, clickY) {
 
 	let pos = {}
 
-	pos.x = Math.trunc((clickX - rect.left) / (rect.width / BOARD_WIDTH));
-	pos.y tileY = Math.trunc((clickY - rect.top) / (rect.height / BOARD_HEIGHT));
+	pos.x = Math.floor((clickX - rect.left) / (rect.width / BOARD_WIDTH));
+	pos.y = Math.floor((clickY - rect.top) / (rect.height / BOARD_HEIGHT));
 
 	//stores weather the user clicked inside the board or outside the board
-	if (tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT) {
+	if (pos.x < 0 || pos.x >= BOARD_WIDTH || pos.y < 0 || pos.y >= BOARD_HEIGHT) {
 		pos.inBoard = false
 	} else {
 		pos.inBoard = true;
@@ -254,6 +254,7 @@ function getTileClicked(canvas, clickX, clickY) {
 
 //AI
 //does getClientRect() but reletive to the top left corner of the page 
+//shapes are hard
 function getPageRect(el) {
   const r = el.getBoundingClientRect();
 
@@ -280,14 +281,41 @@ function start(state) {
 }
 
 function updateBoard(state) {
-	if(!state.lastTileClicked.inBoard) {
+	//cancle if you attempt to select an empty slot
+	if(state.board[state.lastTileClicked.y][state.lastTileClicked.x] === PIECE.EMPTY && state.selecting === false) {
+		state.selecting = false;
+		return;
+	}
+
+	//if you clicked outside the board or on an empty tile it "cancles" (doesn't select anything)
+	if(!state.lastTileClicked.inBoard /*|| state.board[state.selectedTile.y][state.selectedTile.x] === PIECE.EMPTY*/) {
 		state.selecting = false;
 	} 
 	else {
-		
 
+
+		//state.selecting = !state.selecting;
+		if(state.selecting == false) {
+			state.selecting = true;
+			state.selectedTile = state.lastTileClicked;
+		} else {
+			let temp = state.board[state.selectedTile.y][state.selectedTile.x];
+
+			state.board[state.selectedTile.y][state.selectedTile.x] = PIECE.EMPTY;
+			state.board[state.lastTileClicked.y][state.lastTileClicked.x] = temp;
+			state.selecting = false;
+			////only sets the selected tile to empty if 
+			//if(!tilePosEqual(state.lastTileClicked, state.selectedTile)) {
+			//}
+		}
 	}
+
+	state.selectedTile = state.lastTileClicked;
 	
+}
+
+function tilePosEqual(a, b) {
+	return (a.x === b.x && a.y === b.y);
 }
 
 function update(state) {
@@ -308,8 +336,8 @@ function render(state) {
 
 	if(state.selecting) {
 
-		let x = state.selectedPiece.x;
-		let y = state.selectedPiece.y;
+		let x = state.selectedTile.x;
+		let y = state.selectedTile.y;
 		
 		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, 2, TILE_HEIGHT);
 		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, 2);
