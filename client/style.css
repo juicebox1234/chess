@@ -2,10 +2,52 @@ html, body {
     touch-action: manipulation;
 }
 
-#canvas {
+#canv {
 	border: 2px solid black;
 	width: 50vw;
 	height: 50vw;
+}
+
+#grid {
+	display: grid;
+	/*background: blue;*/
+	width: 50vw;
+	height: 25vw;
+
+	gap: 2px;
+
+	grid-template-columns: 50% 1fr 1fr 1fr;
+	/*grid-template-rows: 1fr 1fr 1fr 1fr;*/
+}
+
+#canvas {
+	background: red;
+	width: 100%;
+	height: 100%;
+
+	grid-column: 1;
+	grid-row: 1;
+}
+
+#button-container-1 {
+	grid-column 2/2;
+	grid-row 1/1;
+}
+
+.button-container {
+	display: flex;
+	flex-direction: column; /* Stacks items vertically */
+	gap: 5px;     
+}
+
+#clear-btn {
+	height: 20%;
+	width: 100%;
+}
+
+#reset-btn {
+	height: 20%;
+	width: 100%;
 }
 
 
@@ -27,4 +69,12 @@ html, body {
 	touch-action: none;
 	pointer-events: none;
 }
+
+
+
+
+* {
+  box-sizing: border-box;
+}
+
 

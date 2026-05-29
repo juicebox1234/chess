@@ -281,37 +281,28 @@ function start(state) {
 }
 
 function updateBoard(state) {
-	//cancle if you attempt to select an empty slot
+	//cancle if you attempt to click an empty slot and you aren't already selecting another piece it cancles
 	if(state.board[state.lastTileClicked.y][state.lastTileClicked.x] === PIECE.EMPTY && state.selecting === false) {
 		state.selecting = false;
 		return;
 	}
 
-	//if you clicked outside the board or on an empty tile it "cancles" (doesn't select anything)
-	if(!state.lastTileClicked.inBoard /*|| state.board[state.selectedTile.y][state.selectedTile.x] === PIECE.EMPTY*/) {
+	//cancles if you clicked outside the board "cancles" (doesn't select anything)
+	if(!state.lastTileClicked.inBoard) {
 		state.selecting = false;
+		return;
 	} 
-	else {
-
-
-		//state.selecting = !state.selecting;
-		if(state.selecting == false) {
-			state.selecting = true;
-			state.selectedTile = state.lastTileClicked;
-		} else {
-			let temp = state.board[state.selectedTile.y][state.selectedTile.x];
-
-			state.board[state.selectedTile.y][state.selectedTile.x] = PIECE.EMPTY;
-			state.board[state.lastTileClicked.y][state.lastTileClicked.x] = temp;
-			state.selecting = false;
-			////only sets the selected tile to empty if 
-			//if(!tilePosEqual(state.lastTileClicked, state.selectedTile)) {
-			//}
-		}
+	
+	if(state.selecting == false) {
+		state.selecting = true;
+	} else {
+		let temp = state.board[state.selectedTile.y][state.selectedTile.x];
+		state.board[state.selectedTile.y][state.selectedTile.x] = PIECE.EMPTY;
+		state.board[state.lastTileClicked.y][state.lastTileClicked.x] = temp;
+		state.selecting = false;
 	}
 
 	state.selectedTile = state.lastTileClicked;
-	
 }
 
 function tilePosEqual(a, b) {
