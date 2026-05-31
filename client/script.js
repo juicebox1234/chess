@@ -1,8 +1,9 @@
+import * as Util from './util.js'
+
 const BOARD_HEIGHT = 8;
 const BOARD_WIDTH = 8;
 const TILE_WIDTH = 32;
 const TILE_HEIGHT = 32
-const PIECE_COUNT = 13;
 
 //ids for each peice 
 //enum
@@ -14,13 +15,22 @@ const PIECE = Object.freeze ({
 	QUEEN: 4,
 	KING: 5,
 	EMPTY: 6,
-	PAWN: 7,
-	ROOK: 8,
-	KNIGHT: 9,
-	BISHOP: 10,
-	QUEEN: 11,
-	KING: 12,
+	WHITE_PAWN: 7,
+	WHITE_ROOK: 8,
+	WHITE_KNIGHT: 9,
+	WHITE_BISHOP: 10,
+	WHITE_QUEEN: 11,
+	WHITE_KING: 12,
 });
+const PIECE_COUNT = 13;
+
+const EventType = Object.freeze ({
+	POINTER_DOWN: 0,
+});
+
+const EVENT_SUBSCRIBERS = [
+	[handlePointerdown],
+];
 
 //peice data
 const PIECES_DATA = Object.freeze ([
@@ -39,6 +49,8 @@ const PIECES_DATA = Object.freeze ([
 	{image: "./assets/textures/white_king.png"},
 ]);
 
+//final constant for storeing data for the peices
+//kinda gross
 let PIECES = []
 PIECES.length = PIECE_COUNT;
 
@@ -48,49 +60,19 @@ async function initPieces() {
 		PIECES[i] = {};
 	}
 
-	piecePngs = [];
+	let piecePngs = [];
 	piecePngs.length = PIECE_COUNT;
 	
 	for(let i = 0; i < PIECE_COUNT; i++) {
 		if(i != PIECE.EMPTY)
-			piecePngs[i] = readImage(PIECES_DATA[i].image) 
+			piecePngs[i] = Util.readImage(PIECES_DATA[i].image) 
 	}
 
-	results = await Promise.all(piecePngs);
+	let results = await Promise.all(piecePngs);
 
 	for(let i = 0; i < PIECE_COUNT; i++) {
 		if(i != PIECE.EMPTY)
 			PIECES[i].image = await piecePngs[i];
-	}
-}
-
-
-function init() {
-}
-
-//AI function IDK how to do this stuff
-function readImage(url) {
-	return new Promise((resolve, reject) => {
-		const img = new Image();
-		img.onload = () => resolve(img);
-		img.onerror = (err) => reject(err);
-		img.src = url;
-	});
-}
-
-//AI function kinda IDK how to do this stuff
-async function readJson(name) {
-	try {
-		const response = await fetch('./assets/board.json');
-		if (!response.ok) {
-			throw new Error(`HTTP error status:${response.status}`)
-		} 
-
-		const json = await response.json();
-
-		return json;
-	} catch(err) {
-		throw err;
 	}
 }
 
@@ -119,44 +101,17 @@ function drawBoard() {
 }
 
 async function initBoard() {
-	//let board = [];
 
-	//initalize array
-//	board.length = 8;
-//
-//	for(int i = 0; i < board.length; i++) {
-//		board[i] = [];
-//		board[i].length = 8;
-//		
-//		for(int x = 0; x < 8; x++) {
-//			
-//		}
-//	}
-
-	let board = await readJson("/board.json");
-
-	//console.log(board);
-	//console.log("hello");
+	let board = await Util.readJson("/board.json");
 
 
 	return board
 }
 
-//helper
-//pass a PointerDownEvent
-function getCoordsInsideTarget(e) {
-	//e.pageX + 
-}
-
-const BoardGuiState  ={
-	IDLE: 0,
-	SELECTED: 1,
-}
-
 async function initState() {
 
 	let state = {
-		
+		eventQueue: [],
 		lastTileClicked: {x: 0, y: 0},
 		selectedTile: {x: 0, y: 0},
 		selecting: false,
@@ -171,69 +126,25 @@ async function initState() {
 	state.canvas.width = TILE_WIDTH * BOARD_WIDTH;
 	state.canvas.height = TILE_HEIGHT * BOARD_HEIGHT;
 
-	//state.element = document.getElementById('piece');
-
 	document.addEventListener('pointerdown', (e) => {
-		state.lastTileClicked = getTileClicked(state.canvas, e.pageX, e.pageY);
-		
-		start(state);
-	});
-
-	document.addEventListener('pointerdown', (e) => {
-		//console.log(e);
-		const rect = getPageRect(state.canvas);
-		
-		//calculate tile clicked
-		let tileX = Math.trunc((e.pageX - rect.left) / (rect.width / BOARD_WIDTH));
-		let tileY = Math.trunc((e.pageY - rect.top) / (rect.height / BOARD_HEIGHT));
-
-
-		//console.log(tileX+ " " +  tileY  + "  :" + state.canvas.style.height);
-
-		//bounds checking
-		/*if(tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT) {
-			console.log("aaaj");
-			state.selecting = false;
-			start(state);
-			return;
-		}
-
-		if(state.selecting === false && state.board[tileY][tileX] == PIECE.EMPTY) {
-			start(state);
-			return;
-		}
-
-		if(state.selecting === true && tileY == state.selectedTile.y  && tileX == state.selectedPiece.x) {
-			state.selecting = false;
-			start(state);
-			return;
-		}
-
-		if(state.selecting === true) {
-			state.board[tileY][tileX] = state.board[state.selectedTile.y][state.selectedPiece.x];
-			state.board[state.selectedTile.y][state.selectedPiece.x] = PIECE.EMPTY;
-			state.selecting = false;
-			start(state);
-		}
-		else if (!(tileX < 0 || tileX >= BOARD_WIDTH || tileY < 0 || tileY >= BOARD_HEIGHT)) {
-			state.selectedTile = {
-				x: tileX,
-				y: tileY,
-			};
-
-			state.selecting = true;
-			start(state);
-		} */
-
-	});
+		//state.lastTileClicked = getTileClicked(state.canvas, e.pageX, e.pageY);
 
 	
+		
+
+		state.eventQueue.push({
+			type: EventType.POINTER_DOWN,
+			data: {x: e.pageX, y: e.pageY},
+		});
+
+		//start(state);
+	});
 
 	return state;
 }
 
 function getTileClicked(canvas, clickX, clickY) {
-	const rect = getPageRect(canvas);
+	const rect = Util.getPageRect(canvas);
 	
 	//calculate tile clickeclickX, clickY
 
@@ -252,46 +163,42 @@ function getTileClicked(canvas, clickX, clickY) {
 	return pos;
 }
 
-//AI
-//does getClientRect() but reletive to the top left corner of the page 
-//shapes are hard
-function getPageRect(el) {
-  const r = el.getBoundingClientRect();
-
-  return {
-    left: r.left + scrollX,
-    top: r.top + scrollY,
-    width: r.width,
-    height: r.height
-  };
-}
-
 function start(state) {
-
-	//console.count("started");
-
 	function loop() {
-		update(state);
-		render(state);
 		
-		//requestAnimationFrame(loop);
+		while(state.eventQueue.length > 0) {
+			let _event = state.eventQueue.shift();
+			
+			for(let i = 0; i < EVENT_SUBSCRIBERS[_event.type].length; i++) {
+				EVENT_SUBSCRIBERS[_event.type][i](state, _event);
+
+				//console.log(`${_event.type, i}`);
+			}
+
+
+		}
+//		update(state);
+//		render(state);
+		
+		requestAnimationFrame(loop);
 	}
-	loop();
-	//requestAnimationFrame(loop);
+	requestAnimationFrame(loop);
 }
 
-function updateBoard(state) {
+function updateBoard(state, _event) {
+	//cancles if you clicked outside the board "cancles" (doesn't select anything)
+	state.lastTileClicked = getTileClicked(state.canvas, _event.data.x, _event.data.y);
+
+	if(!state.lastTileClicked.inBoard) {
+		state.selecting = false;
+		return;
+	} 
+
 	//cancle if you attempt to click an empty slot and you aren't already selecting another piece it cancles
 	if(state.board[state.lastTileClicked.y][state.lastTileClicked.x] === PIECE.EMPTY && state.selecting === false) {
 		state.selecting = false;
 		return;
 	}
-
-	//cancles if you clicked outside the board "cancles" (doesn't select anything)
-	if(!state.lastTileClicked.inBoard) {
-		state.selecting = false;
-		return;
-	} 
 	
 	if(state.selecting == false) {
 		state.selecting = true;
@@ -305,12 +212,14 @@ function updateBoard(state) {
 	state.selectedTile = state.lastTileClicked;
 }
 
-function tilePosEqual(a, b) {
-	return (a.x === b.x && a.y === b.y);
+function handlePointerdown(state, _event) {
+	updateBoard(state, _event);
+	render(state);
 }
 
 function update(state) {
-	updateBoard(state);
+
+	//updateBoard(state);
 }
 
 function render(state) {
@@ -339,7 +248,7 @@ function render(state) {
 
 
 async function main() {
-	init();
+	//init();
 	await initPieces();
 
 	let state = await initState();
@@ -348,10 +257,9 @@ async function main() {
 
 	console.log(state.num);
 
+	render(state);
 	start(state);
 
 
 }
 main();
-
-

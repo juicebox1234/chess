@@ -16,7 +16,7 @@ html, body {
 
 	gap: 2px;
 
-	grid-template-columns: 50% 1fr 1fr 1fr;
+	grid-template-columns: 50% 16.666% 1fr 1fr;
 	/*grid-template-rows: 1fr 1fr 1fr 1fr;*/
 }
 
