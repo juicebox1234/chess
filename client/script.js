@@ -26,10 +26,14 @@ const PIECE_COUNT = 13;
 
 const EventType = Object.freeze ({
 	POINTER_DOWN: 0,
+	CLEAR_BUTTON_PRESSED: 1,
+	RESET_BUTTON_PRESSED: 2,
 });
 
 const EVENT_SUBSCRIBERS = [
 	[handlePointerdown],
+	[handleClearButtonPressed],
+	[handleResetButtonPressed],
 ];
 
 //peice data
@@ -116,28 +120,36 @@ async function initState() {
 		selectedTile: {x: 0, y: 0},
 		selecting: false,
 
-		board: await initBoard(),
+		BOARD: await initBoard(),
 		boardImage: drawBoard(),
 		canvas: document.getElementById('canvas'),
 		renderer: canvas.getContext("2d", {alpha: false}),
 		num: 117,
 	};
+	state.board = structuredClone(state.BOARD);
 
 	state.canvas.width = TILE_WIDTH * BOARD_WIDTH;
 	state.canvas.height = TILE_HEIGHT * BOARD_HEIGHT;
 
 	document.addEventListener('pointerdown', (e) => {
-		//state.lastTileClicked = getTileClicked(state.canvas, e.pageX, e.pageY);
-
-	
-		
-
 		state.eventQueue.push({
 			type: EventType.POINTER_DOWN,
 			data: {x: e.pageX, y: e.pageY},
 		});
+	});
 
-		//start(state);
+	document.querySelector('#clear-btn').addEventListener('click', (e) => {
+		state.eventQueue.push({
+			type: EventType.CLEAR_BUTTON_PRESSED,
+			data: {},
+		});
+	});
+
+	document.querySelector('#reset-btn').addEventListener('click', (e) => {
+		state.eventQueue.push({
+			type: EventType.RESET_BUTTON_PRESSED,
+			data: {},
+		});
 	});
 
 	return state;
@@ -215,6 +227,31 @@ function updateBoard(state, _event) {
 function handlePointerdown(state, _event) {
 	updateBoard(state, _event);
 	render(state);
+}
+
+function handleClearButtonPressed(state, _event) {
+	clear_board(state.board);
+	render(state);
+}
+
+function handleResetButtonPressed(state, _event) {
+	state.board = structuredClone(state.BOARD);
+//	console.log(state.BOARD);
+//	console.log(state.board);
+//	for(let y = 0; y < state.board.length; y++) {
+//		for(let x = 0; x < state.board.length; x++) {
+//			state.board[y][x] = state.BOARD[y][x];
+//		}
+//	}
+	render(state);
+}
+
+function clear_board(board) {
+	for(let y = 0; y < board.length; y++) {
+		for(let x = 0; x < board.length; x++) {
+			board[y][x] = PIECE.EMPTY;
+		}
+	}
 }
 
 function update(state) {
