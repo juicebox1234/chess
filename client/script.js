@@ -116,25 +116,39 @@ async function initState() {
 
 	let state = {
 		eventQueue: [],
-		lastTileClicked: {x: 0, y: 0},
-		selectedTile: {x: 0, y: 0},
-		selecting: false,
+
+		board: {
+			canvas: document.getElementById('canvas1'),
+			lastTileClicked: {x: 0, y: 0},
+			selectedTile: {x: 0, y: 0},
+			selecting: false,
+		},
+
+		board2: {
+			canvas: document.getElementById('canvas1'),
+			lastTileClicked: {x: 0, y: 0},
+			selectedTile: {x: 0, y: 0},
+			selecting: false,
+		},
 
 		BOARD: await initBoard(),
 		boardImage: drawBoard(),
-		canvas: document.getElementById('canvas'),
-		renderer: canvas.getContext("2d", {alpha: false}),
 		num: 117,
 	};
-	state.board = structuredClone(state.BOARD);
+	state.board.tileMap = structuredClone(state.BOARD);
+	state.board.renderer = state.board.canvas.getContext("2d", {alpha: false}),
 
-	state.canvas.width = TILE_WIDTH * BOARD_WIDTH;
-	state.canvas.height = TILE_HEIGHT * BOARD_HEIGHT;
+	state.board.tileMap = structuredClone(state.BOARD);
+	state.board.renderer = state.board.canvas.getContext("2d", {alpha: false}),
+
+	state.board.canvas.width = TILE_WIDTH * BOARD_WIDTH;
+	state.board.canvas.height = TILE_HEIGHT * BOARD_HEIGHT;
 
 	document.addEventListener('pointerdown', (e) => {
+		console.log(e.target);
 		state.eventQueue.push({
 			type: EventType.POINTER_DOWN,
-			data: {x: e.pageX, y: e.pageY},
+			data: {x: e.pageX, y: e.pageY, },
 		});
 	});
 
@@ -197,45 +211,45 @@ function start(state) {
 	requestAnimationFrame(loop);
 }
 
-function updateBoard(state, _event) {
+function updateBoard(board, _event) {
 	//cancles if you clicked outside the board "cancles" (doesn't select anything)
-	state.lastTileClicked = getTileClicked(state.canvas, _event.data.x, _event.data.y);
+	board.lastTileClicked = getTileClicked(board.canvas, _event.data.x, _event.data.y);
 
-	if(!state.lastTileClicked.inBoard) {
-		state.selecting = false;
+	if(!board.lastTileClicked.inBoard) {
+		board.selecting = false;
 		return;
 	} 
 
 	//cancle if you attempt to click an empty slot and you aren't already selecting another piece it cancles
-	if(state.board[state.lastTileClicked.y][state.lastTileClicked.x] === PIECE.EMPTY && state.selecting === false) {
-		state.selecting = false;
+	if(board.tileMap[board.lastTileClicked.y][board.lastTileClicked.x] === PIECE.EMPTY && board.selecting === false) {
+		board.selecting = false;
 		return;
 	}
 	
-	if(state.selecting == false) {
-		state.selecting = true;
+	if(board.selecting == false) {
+		board.selecting = true;
 	} else {
-		let temp = state.board[state.selectedTile.y][state.selectedTile.x];
-		state.board[state.selectedTile.y][state.selectedTile.x] = PIECE.EMPTY;
-		state.board[state.lastTileClicked.y][state.lastTileClicked.x] = temp;
-		state.selecting = false;
+		let temp = board.tileMap[board.selectedTile.y][board.selectedTile.x];
+		board.tileMap[board.selectedTile.y][board.selectedTile.x] = PIECE.EMPTY;
+		board.tileMap[board.lastTileClicked.y][board.lastTileClicked.x] = temp;
+		board.selecting = false;
 	}
 
-	state.selectedTile = state.lastTileClicked;
+	board.selectedTile = board.lastTileClicked;
 }
 
 function handlePointerdown(state, _event) {
-	updateBoard(state, _event);
+	updateBoard(state.board, _event);
 	render(state);
 }
 
 function handleClearButtonPressed(state, _event) {
-	clear_board(state.board);
+	clear_board(state.board.tileMap);
 	render(state);
 }
 
 function handleResetButtonPressed(state, _event) {
-	state.board = structuredClone(state.BOARD);
+	state.board.tileMap = structuredClone(state.BOARD);
 //	console.log(state.BOARD);
 //	console.log(state.board);
 //	for(let y = 0; y < state.board.length; y++) {
@@ -260,26 +274,26 @@ function update(state) {
 }
 
 function render(state) {
-	state.renderer.drawImage(state.boardImage, 0, 0);
+	state.board.renderer.drawImage(state.boardImage, 0, 0);
 
 	for(let y = 0; y < BOARD_HEIGHT; y++) {
 		for(let x = 0; x < BOARD_WIDTH; x++) {
-			if(state.board[y][x] !== PIECE.EMPTY)
- 				state.renderer.drawImage(PIECES[state.board[y][x]].image, x*32, y*32);
+			if(state.board.tileMap[y][x] !== PIECE.EMPTY)
+ 				state.board.renderer.drawImage(PIECES[state.board.tileMap[y][x]].image, x*32, y*32);
 		}
 	}
-		state.renderer.fillStyle = "#34ebe5"
+		state.board.renderer.fillStyle = "#34ebe5"
 		//renderer.fillRect(0,0,50,50);
 
-	if(state.selecting) {
+	if(state.board.selecting) {
 
-		let x = state.selectedTile.x;
-		let y = state.selectedTile.y;
+		let x = state.board.selectedTile.x;
+		let y = state.board.selectedTile.y;
 		
-		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, 2, TILE_HEIGHT);
-		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, 2);
-		state.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT + TILE_HEIGHT - 2, TILE_WIDTH, 2);
-		state.renderer.fillRect(x * TILE_WIDTH + TILE_WIDTH - 2, y * TILE_HEIGHT, 2, TILE_HEIGHT);
+		state.board.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, 2, TILE_HEIGHT);
+		state.board.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, 2);
+		state.board.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT + TILE_HEIGHT - 2, TILE_WIDTH, 2);
+		state.board.renderer.fillRect(x * TILE_WIDTH + TILE_WIDTH - 2, y * TILE_HEIGHT, 2, TILE_HEIGHT);
 	}
 }
 
