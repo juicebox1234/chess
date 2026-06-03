@@ -25,7 +25,8 @@ export function getPageRect(el) {
 //AI function kinda IDK how to do this stuff
 export async function readJson(name) {
 	try {
-		const response = await fetch('./assets/board.json');
+		//const response = await fetch('./assets/board.json');
+		const response = await fetch(name);
 		if (!response.ok) {
 			throw new Error(`HTTP error status:${response.status}`)
 		} 

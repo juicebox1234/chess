@@ -28,12 +28,14 @@ const EventType = Object.freeze ({
 	POINTER_DOWN: 0,
 	CLEAR_BUTTON_PRESSED: 1,
 	RESET_BUTTON_PRESSED: 2,
+	TRANSFER: 3,
 });
 
 const EVENT_SUBSCRIBERS = [
 	[handlePointerdown],
 	[handleClearButtonPressed],
 	[handleResetButtonPressed],
+	[handleTransfer],
 ];
 
 //peice data
@@ -106,7 +108,7 @@ function drawBoard() {
 
 async function initBoard() {
 
-	let board = await Util.readJson("/board.json");
+	let board = await Util.readJson("./assets/board.json");
 
 
 	return board
@@ -117,6 +119,9 @@ async function initState() {
 	let state = {
 		eventQueue: [],
 
+		tran: false,
+		transfer: null,
+
 		board: {
 			canvas: document.getElementById('canvas1'),
 			lastTileClicked: {x: 0, y: 0},
@@ -125,30 +130,42 @@ async function initState() {
 		},
 
 		board2: {
-			canvas: document.getElementById('canvas1'),
+			canvas: document.getElementById('canvas2'),
 			lastTileClicked: {x: 0, y: 0},
 			selectedTile: {x: 0, y: 0},
 			selecting: false,
 		},
 
 		BOARD: await initBoard(),
-		boardImage: drawBoard(),
+		//boardImage: drawBoard(),
 		num: 117,
 	};
-	state.board.tileMap = structuredClone(state.BOARD);
-	state.board.renderer = state.board.canvas.getContext("2d", {alpha: false}),
-
+	//board1
 	state.board.tileMap = structuredClone(state.BOARD);
 	state.board.renderer = state.board.canvas.getContext("2d", {alpha: false}),
 
 	state.board.canvas.width = TILE_WIDTH * BOARD_WIDTH;
 	state.board.canvas.height = TILE_HEIGHT * BOARD_HEIGHT;
 
+	//board2
+	state.board2.tileMap = await Util.readJson("./assets/board2.json");//structuredClone(state.BOARD);
+	state.board2.renderer = state.board2.canvas.getContext("2d", {alpha: false}),
+
+	state.board2.canvas.width = TILE_WIDTH * 2;
+	state.board2.canvas.height = TILE_HEIGHT * BOARD_HEIGHT;
+
 	document.addEventListener('pointerdown', (e) => {
-		console.log(e.target);
+		console.log(e.target.id);
+		//console.log(e.target.id);
+
+//		let id = 0
+//		if(e.target.id === "canvas2") {
+//			id = 1;
+//		}
+
 		state.eventQueue.push({
 			type: EventType.POINTER_DOWN,
-			data: {x: e.pageX, y: e.pageY, },
+			data: {x: e.pageX, y: e.pageY, id: e.target.id},
 		});
 	});
 
@@ -176,8 +193,8 @@ function getTileClicked(canvas, clickX, clickY) {
 
 	let pos = {}
 
-	pos.x = Math.floor((clickX - rect.left) / (rect.width / BOARD_WIDTH));
-	pos.y = Math.floor((clickY - rect.top) / (rect.height / BOARD_HEIGHT));
+	pos.x = Math.floor((clickX - rect.left) / (rect.width / (canvas.width / TILE_WIDTH)));
+	pos.y = Math.floor((clickY - rect.top) / (rect.height / (canvas.height / TILE_HEIGHT)));
 
 	//stores weather the user clicked inside the board or outside the board
 	if (pos.x < 0 || pos.x >= BOARD_WIDTH || pos.y < 0 || pos.y >= BOARD_HEIGHT) {
@@ -211,7 +228,7 @@ function start(state) {
 	requestAnimationFrame(loop);
 }
 
-function updateBoard(board, _event) {
+function updateBoard(board, board2, _event) {
 	//cancles if you clicked outside the board "cancles" (doesn't select anything)
 	board.lastTileClicked = getTileClicked(board.canvas, _event.data.x, _event.data.y);
 
@@ -220,11 +237,19 @@ function updateBoard(board, _event) {
 		return;
 	} 
 
+	if(board2.selecting == true) {
+		board.tileMap[board.lastTileClicked.y][board.lastTileClicked.x] = board2.tileMap[board2.selectedTile.y][board.selectedTile.x];
+
+		board2.selecting = false;
+		return;
+	}
+
 	//cancle if you attempt to click an empty slot and you aren't already selecting another piece it cancles
 	if(board.tileMap[board.lastTileClicked.y][board.lastTileClicked.x] === PIECE.EMPTY && board.selecting === false) {
 		board.selecting = false;
 		return;
 	}
+
 	
 	if(board.selecting == false) {
 		board.selecting = true;
@@ -238,8 +263,44 @@ function updateBoard(board, _event) {
 	board.selectedTile = board.lastTileClicked;
 }
 
+function updateBoard2(board, _event) {
+	if(_event.data.id === "canvas2") {
+	//cancles if you clicked outside the board "cancles" (doesn't select anything)
+	board.lastTileClicked = getTileClicked(board.canvas, _event.data.x, _event.data.y);
+
+	if(!board.lastTileClicked.inBoard) {
+		board.selecting = false;
+		return;
+	} 
+
+	//cancle if you attempt to click an empty slot and you aren't already selecting another piece it cancles
+//	if(board.tileMap[board.lastTileClicked.y][board.lastTileClicked.x] === PIECE.EMPTY && board.selecting === false) {
+//		board.selecting = false;
+//		return;
+//	}
+	
+	if(board.selecting == false) {
+		board.selecting = true;
+	} else {
+		//let temp = board.tileMap[board.selectedTile.y][board.selectedTile.x];
+		//board.tileMap[board.selectedTile.y][board.selectedTile.x] = PIECE.EMPTY;
+		//board.tileMap[board.lastTileClicked.y][board.lastTileClicked.x] = temp;
+		
+		//state.EventQueue.push(
+		board.selecting = false;
+	}
+
+	board.selectedTile = board.lastTileClicked;
+	}
+}
+
+function handleTransfer(state, _event) {
+
+}
+
 function handlePointerdown(state, _event) {
-	updateBoard(state.board, _event);
+	updateBoard(state.board, state.board2, _event);
+	updateBoard2(state.board2, _event);
 	render(state);
 }
 
@@ -274,7 +335,25 @@ function update(state) {
 }
 
 function render(state) {
-	state.board.renderer.drawImage(state.boardImage, 0, 0);
+	//state.board.renderer.drawImage(state.boardImage, 0, 0);
+
+	//let canvas = document.createElement("canvas");
+	//canvas.width = 256;
+	//canvas.height = 256;
+	//let renderer = canvas.getContext("2d", {alpha: false});
+
+	//draw background
+	for(let y = 0; y < BOARD_HEIGHT; y++) {
+		for(let x = 0; x < BOARD_WIDTH; x++) {
+			//fill checkerboard pattern
+			if((x % 2 == 0) == (y % 2 == 0))
+				state.board.renderer.fillStyle = "#e87f23"
+			else
+				state.board.renderer.fillStyle = "#703602";
+
+			state.board.renderer.fillRect(x*32, y*32, 32, 32);
+		}
+	}
 
 	for(let y = 0; y < BOARD_HEIGHT; y++) {
 		for(let x = 0; x < BOARD_WIDTH; x++) {
@@ -294,6 +373,40 @@ function render(state) {
 		state.board.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, 2);
 		state.board.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT + TILE_HEIGHT - 2, TILE_WIDTH, 2);
 		state.board.renderer.fillRect(x * TILE_WIDTH + TILE_WIDTH - 2, y * TILE_HEIGHT, 2, TILE_HEIGHT);
+	}
+
+	// epic coding skilz
+
+	//draw background
+	for(let y = 0; y < BOARD_HEIGHT; y++) {
+		for(let x = 0; x < 2; x++) {
+			//fill checkerboard pattern
+			if((x % 2 == 0) == (y % 2 == 0))
+				state.board2.renderer.fillStyle = "#e87f23"
+			else
+				state.board2.renderer.fillStyle = "#703602";
+
+			state.board2.renderer.fillRect(x*32, y*32, 32, 32);
+		}
+	}
+	for(let y = 0; y < BOARD_HEIGHT; y++) {
+		for(let x = 0; x < 2; x++) {
+			if(state.board2.tileMap[y][x] !== PIECE.EMPTY)
+ 				state.board2.renderer.drawImage(PIECES[state.board2.tileMap[y][x]].image, x*32, y*32);
+		}
+	}
+		state.board2.renderer.fillStyle = "#34ebe5"
+		//renderer.fillRect(0,0,50,50);
+
+	if(state.board2.selecting) {
+
+		let x = state.board2.selectedTile.x;
+		let y = state.board2.selectedTile.y;
+		
+		state.board2.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, 2, TILE_HEIGHT);
+		state.board2.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, 2);
+		state.board2.renderer.fillRect(x * TILE_WIDTH, y * TILE_HEIGHT + TILE_HEIGHT - 2, TILE_WIDTH, 2);
+		state.board2.renderer.fillRect(x * TILE_WIDTH + TILE_WIDTH - 2, y * TILE_HEIGHT, 2, TILE_HEIGHT);
 	}
 }
 

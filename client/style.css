@@ -11,8 +11,8 @@ html, body {
 #grid {
 	display: grid;
 	/*background: blue;*/
-	width: 50vw;
-	height: 25vw;
+	width: 100vw;
+	height: 50vw;
 
 	gap: 2px;
 
